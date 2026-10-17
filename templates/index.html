@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ffffff">
+  <title>ТЕСТ — Направления МО и ПО</title>
+  <link rel="stylesheet" href="/static/app.css?v=20260914-2">
+</head>
+<body>
+<div id="app" class="app-shell">
+  <aside class="side-rail" aria-label="Главное меню">
+    <button class="rail-button active" data-view-button="create" aria-label="Направление" title="Направление">
+      <img class="brand-icon" src="/static/icons/document-edit.svg" alt="" aria-hidden="true">
+    </button>
+    <button class="rail-button" data-view-button="archive" aria-label="Мои документы" title="Мои документы">
+      <img class="brand-icon" src="/static/icons/archive.svg" alt="" aria-hidden="true">
+    </button>
+    <button id="admin-button" class="rail-button" data-view-button="admin" aria-label="Администрирование" title="Администрирование" hidden>
+      <img class="brand-icon" src="/static/icons/admin-users.svg" alt="" aria-hidden="true">
+    </button>
+    <button id="catalog-button" class="rail-button" data-view-button="catalog" aria-label="Контингенты" title="Контингенты" hidden>
+      <img class="brand-icon" src="/static/icons/catalog-reference.png" alt="" aria-hidden="true">
+    </button>
+    <div class="rail-bottom">
+      <button class="rail-button" data-new-document-button aria-label="Новый документ" title="Новый документ">
+        <img class="brand-icon new-document-icon" src="/static/icons/new-document-reference.png" alt="" aria-hidden="true">
+      </button>
+      <button class="rail-button profile-avatar-button" id="profile-button" aria-label="Профиль и подпись" title="Профиль и подпись">
+        <span class="rail-avatar"><img class="brand-icon" src="/static/icons/profile.svg" alt="" aria-hidden="true"></span>
+      </button>
+    </div>
+  </aside>
+
+  <div class="workspace">
+    <main class="content">
+      <section id="create-view" class="view active-view">
+        <div class="main-grid">
+          <form id="document-form" class="form-card" novalidate autocomplete="off">
+            <section class="form-section">
+              <div class="section-header">
+                <h2><span class="round-icon"><img class="brand-icon" src="/static/icons/candidate-form.png" alt="" aria-hidden="true"></span>Анкета кандидата</h2>
+                <span id="parse-status" class="status-pill" hidden>Данные распознаны</span>
+              </div>
+              <label id="dropzone" class="dropzone" for="pdf-file">
+                <input id="pdf-file" type="file" accept="application/pdf,.pdf" hidden>
+                <span class="file-icon"><img class="brand-icon" src="/static/icons/pdf-questionnaire.png" alt="" aria-hidden="true"></span>
+                <span class="file-copy"><strong id="file-title">Перетащите сюда PDF-анкету</strong><span id="file-subtitle">или нажмите, чтобы выбрать файл</span></span>
+                <span class="secondary-button" id="file-action">Выбрать</span>
+              </label>
+              <p id="parse-warning" class="field-warning" hidden></p>
+            </section>
+
+            <section class="form-section">
+              <div class="section-header">
+                <h2><span class="round-icon"><img class="brand-icon" src="/static/icons/candidate-data.png" alt="" aria-hidden="true"></span>Данные кандидата</h2>
+                <span class="muted">Можно исправить вручную</span>
+              </div>
+              <div class="field-stack">
+                <label class="field"><span>Фамилия, имя, отчество</span><input id="full-name" autocomplete="new-password" autocapitalize="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" required></label>
+                <div class="three-fields">
+                  <label class="field"><span>Дата рождения</span><input id="birth-date" inputmode="numeric" maxlength="10" placeholder="ДД.ММ.ГГГГ" autocomplete="new-password" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" required></label>
+                  <label class="field"><span>Пол</span><select id="gender" required><option value="">Выберите</option><option>Мужской</option><option>Женский</option></select></label>
+                  <label id="oms-field" class="field"><span>Номер полиса ОМС</span><input id="oms-number" inputmode="numeric"></label>
+                </div>
+              </div>
+            </section>
+
+            <section class="form-section">
+              <div class="section-header"><h2><span class="round-icon"><img class="brand-icon" src="/static/icons/briefcase.svg" alt="" aria-hidden="true"></span>Место работы и медицинский осмотр</h2></div>
+              <div class="field-stack">
+                <label class="field"><span>Бизнес-единица</span><select id="business-unit" required disabled><option value="">Выберите бизнес-единицу</option></select></label>
+                <div class="field"><span>Структурное подразделение</span><div id="unit-combobox" class="combobox"></div></div>
+                <div class="field"><span>Должность</span><div id="job-combobox" class="combobox"></div></div>
+                <div class="field">
+                  <span class="label-row">Вредные и/или опасные производственные факторы <span id="factors-edited" class="status-pill" hidden>Отредактировано</span></span>
+                  <textarea id="factors-text" rows="1" placeholder="Факторы появятся после выбора должности" disabled autocomplete="off"></textarea>
+                </div>
+              </div>
+            </section>
+
+            <section class="form-section po-section">
+              <div class="section-header"><h2><span class="round-icon"><img class="brand-icon" src="/static/icons/mental-health.svg" alt="" aria-hidden="true"></span>Психиатрическое освидетельствование</h2></div>
+              <div class="field-stack">
+                <label class="field"><span class="label-row">Необходимость ПО <span id="po-edited" class="status-pill" hidden>Отредактировано</span></span><select id="po-status" disabled><option value="false">ПО не требуется</option><option value="true">ПО требуется</option></select></label>
+                <div id="po-activities-field" class="field" hidden><span class="label-row">Виды деятельности для ПО <span id="po-activities-edited" class="status-pill" hidden>Отредактировано</span></span><div id="po-multiselect" class="multiselect"></div></div>
+              </div>
+            </section>
+
+            <section class="form-section">
+              <label class="field"><span class="label-row">Дата формирования документов <span id="date-edited" class="status-pill" hidden>Отредактировано</span></span><input id="document-date" inputmode="numeric" maxlength="10" required></label>
+            </section>
+          </form>
+
+          <aside class="result-card">
+            <h2>Ваши документы</h2>
+            <div id="ready-status" class="ready-box pending"><span class="ready-icon">○</span><span>Заполните данные</span></div>
+            <div class="document-list">
+              <div class="document-row"><img class="brand-icon" src="/static/icons/document-certified.svg" alt="" aria-hidden="true"><div><strong>Направление на МО</strong><span id="mo-state">Ожидает данных</span><small id="mo-filename">РТ Направление на МО</small></div></div>
+              <div id="po-document-row" class="document-row"><img class="brand-icon" src="/static/icons/document-certified.svg" alt="" aria-hidden="true"><div><strong>Направление на ПО</strong><span id="po-state">Ожидает данных</span><small id="po-filename" hidden>РТ Направление на ПО</small></div></div>
+            </div>
+            <label class="field filename-field"><span>Изменяемая часть названия</span><input id="filename-suffix" value="" placeholder="Фамилия или дополнение"></label>
+            <h3>Скачать результат</h3>
+            <div class="download-actions">
+              <button type="button" class="download-choice pdf-download" data-formats="pdf" disabled><span class="format-symbol">PDF</span><span><strong>PDF</strong><small>отдельные .pdf</small></span></button>
+              <button type="button" class="download-choice excel-download" data-formats="xlsx" disabled><span class="format-symbol">XLS</span><span><strong>Excel</strong><small>отдельные .xlsx</small></span></button>
+              <button type="button" class="download-choice both-download" data-formats="xlsx,pdf" disabled><img class="brand-icon" src="/static/icons/download.svg" alt="" aria-hidden="true"><span><strong>Excel + PDF</strong><small>все файлы</small></span></button>
+            </div>
+            <p class="archive-note">Копия сохранится в «Моих документах»</p>
+          </aside>
+        </div>
+      </section>
+
+      <section id="archive-view" class="view" hidden>
+        <div class="archive-card">
+          <div class="archive-header">
+            <div class="archive-heading">
+              <h1>Мои документы</h1>
+              <p>Сохранённые документы на сервере.</p>
+              <label class="archive-search">
+                <img class="brand-icon" src="/static/icons/person-search.svg" alt="" aria-hidden="true">
+                <input id="archive-search" type="search" placeholder="Поиск по ФИО или должности" autocomplete="off">
+              </label>
+            </div>
+            <button class="secondary-button real-button" data-new-document-button>Новый документ</button>
+          </div>
+          <div id="archive-list" class="archive-list"><p class="muted">Документов пока нет.</p></div>
+        </div>
+      </section>
+
+      <section id="admin-view" class="view" hidden>
+        <div class="admin-grid">
+          <section class="archive-card">
+            <div class="admin-section-heading"><div><h1>Пользователи</h1></div></div>
+            <div id="admin-users" class="admin-list"><p class="muted">Загрузка…</p></div>
+          </section>
+          <section class="archive-card">
+            <h2 class="admin-card-title">Создать приглашение</h2>
+            <form id="invitation-form" class="field-stack">
+              <label class="field"><span>Рабочий email</span><input id="invitation-email" type="email" required placeholder="name@company.ru"></label>
+              <label class="field"><span>Роль</span><select id="invitation-role"><option value="user">Пользователь</option><option value="editor">Редактор</option><option value="admin">Администратор</option></select></label>
+              <button type="submit" class="primary-button">Создать приглашение</button>
+            </form>
+            <div id="invitation-result" class="invitation-result" hidden>
+              <strong>Ссылка готова</strong>
+              <p>Передайте её человеку. Ссылка одноразовая и действует 7 дней.</p>
+              <div class="copy-row"><input id="invitation-link" readonly><button id="copy-invitation" type="button" class="secondary-button real-button">Копировать</button></div>
+            </div>
+            <h2 class="admin-card-title invitations-title">Приглашения</h2>
+            <div id="admin-invitations" class="admin-list"><p class="muted">Приглашений пока нет.</p></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="catalog-view" class="view" hidden>
+        <div class="admin-grid">
+          <section class="archive-card">
+            <h1>Контингенты</h1>
+            <p class="muted">Скачайте действующий Excel, внесите изменения и загрузите его для проверки.</p>
+            <button id="download-catalog" type="button" class="secondary-button real-button">Скачать действующие контингенты</button>
+            <form id="catalog-upload-form" class="field-stack catalog-upload-form">
+              <label class="field"><span>Новая версия Excel</span><input id="catalog-file" type="file" accept=".xlsx,.xlsm" required></label>
+              <button type="submit" class="primary-button">Загрузить и проверить</button>
+            </form>
+            <div id="catalog-validation" class="catalog-validation" hidden></div>
+          </section>
+          <section class="archive-card">
+            <h2 class="admin-card-title">История версий</h2>
+            <div id="catalog-versions" class="admin-list"><p class="muted">Версий пока нет.</p></div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="profile-modal" class="modal-backdrop" hidden>
+    <section class="profile-modal">
+      <div class="modal-header"><div><h2 id="profile-title">Настройки профиля</h2><p id="profile-description">Текущий профиль</p></div><button id="close-profile" type="button" class="icon-button" aria-label="Закрыть">×</button></div>
+      <button id="logout-button" type="button" class="logout-button">Выйти из профиля</button>
+    </section>
+  </div>
+
+  <div id="auth-modal" class="modal-backdrop" hidden>
+    <form id="auth-form" class="profile-modal" autocomplete="off">
+      <div class="modal-header"><div><h2 id="auth-title">Вход</h2><p id="auth-description">Войдите по рабочему email.</p></div></div>
+      <label id="auth-email-field" class="field"><span>Email</span><input id="auth-email" type="email" required autocomplete="username"></label>
+      <label class="field auth-spaced"><span>Пароль</span><input id="auth-password" type="password" required minlength="8" autocomplete="current-password"></label>
+      <label id="auth-display-field" class="field auth-spaced" hidden><span>Имя для отображения</span><input id="auth-display-name" autocomplete="name"></label>
+      <div id="auth-signer-fields" class="field-stack auth-spaced" hidden>
+        <label class="field"><span>Фамилия и инициалы</span><input id="auth-signer-name" placeholder="Иванова И.И."></label>
+        <label class="field"><span>Изображение подписи</span><input id="auth-signature" type="file" accept="image/png,image/jpeg,image/webp"></label>
+      </div>
+      <p id="auth-error" class="field-warning" hidden></p>
+      <button id="auth-submit" type="submit" class="primary-button">Войти</button>
+    </form>
+  </div>
+
+  <div id="document-preview-modal" class="modal-backdrop document-preview-backdrop" hidden>
+    <section class="document-preview-modal" role="dialog" aria-modal="true" aria-labelledby="document-preview-title">
+      <header class="document-preview-header">
+        <div class="document-preview-heading">
+          <h2 id="document-preview-title">Просмотр документа</h2>
+          <div id="document-preview-tabs" class="document-preview-tabs"></div>
+        </div>
+        <button id="close-document-preview" type="button" class="icon-button" aria-label="Закрыть просмотр">×</button>
+      </header>
+      <div id="document-preview-loading" class="document-preview-loading">Открываем документ…</div>
+      <iframe id="document-preview-frame" class="document-preview-frame" title="Просмотр PDF" hidden></iframe>
+    </section>
+  </div>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+</div>
+<script src="/static/app.js?v=20261016-1" defer></script>
+</body>
+</html>
