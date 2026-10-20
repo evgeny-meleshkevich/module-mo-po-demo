@@ -1,4 +1,10 @@
-// The questionnaire bytes stay in this browser. No upload or remote parser fallback.
+// The questionnaire is parsed locally. Its bytes are never uploaded.
+function candidatePdfError(message) {
+  const error = new Error(message);
+  error.userFacing = true;
+  return error;
+}
+
 export function candidateFromText(text) {
   const match = (pattern) => text.match(pattern)?.[1]?.trim() || "";
   const cleanName = (value) => value.replace(/\s+(Да|Нет)$/iu, "").trim();
@@ -36,37 +42,55 @@ export function textFromItems(items) {
     .map((item) => item.str).join(" ").replace(/[^\S\n]+/g, " ").trim()).join("\n");
 }
 
-export async function parseCandidatePdf(file, { signal } = {}) {
-  if (!file.name?.toLowerCase().endsWith(".pdf")) throw new Error("Выберите PDF-анкету");
-  if (file.size > 20 * 1024 * 1024) throw new Error("PDF превышает допустимый размер 20 МБ");
-  signal?.throwIfAborted();
-  const pdfjs = await import("./vendor/pdfjs/pdf.mjs");
-  pdfjs.GlobalWorkerOptions.workerSrc = new URL("./vendor/pdfjs/pdf.worker.mjs", import.meta.url).href;
-  const data = new Uint8Array(await file.arrayBuffer());
-  signal?.throwIfAborted();
-  const task = pdfjs.getDocument({ data, isEvalSupported: false, useWorkerFetch: false,
-    disableFontFace: true, useSystemFonts: false });
-  let timedOut = false;
-  const stop = () => { void task.destroy().catch(() => {}); };
-  const timer = setTimeout(() => { timedOut = true; stop(); }, 30000);
-  signal?.addEventListener("abort", stop, { once: true });
+export async function readPageTextItems(page, signal) {
+  const reader = page.streamTextContent().getReader();
+  const items = [];
   try {
+    while (true) {
+      signal?.throwIfAborted();
+      const { value, done } = await reader.read();
+      if (done) return items;
+      items.push(...value.items);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+export async function parseCandidatePdf(file, { signal } = {}) {
+  if (!file.name?.toLowerCase().endsWith(".pdf")) throw candidatePdfError("Выберите PDF-анкету.");
+  if (file.size > 20 * 1024 * 1024) throw candidatePdfError("PDF превышает допустимый размер 20 МБ.");
+  signal?.throwIfAborted();
+  let task;
+  let timedOut = false;
+  let timer;
+  const stop = () => { if (task) void task.destroy().catch(() => {}); };
+  try {
+    const pdfjs = await import("./vendor/pdfjs/pdf.mjs");
+    pdfjs.GlobalWorkerOptions.workerSrc = new URL("./vendor/pdfjs/pdf.worker.mjs", import.meta.url).href;
+    const data = new Uint8Array(await file.arrayBuffer());
+    signal?.throwIfAborted();
+    task = pdfjs.getDocument({ data, isEvalSupported: false, useWorkerFetch: false,
+      disableFontFace: true, useSystemFonts: false });
+    timer = setTimeout(() => { timedOut = true; stop(); }, 30000);
+    signal?.addEventListener("abort", stop, { once: true });
     const pdf = await task.promise;
     const page = await pdf.getPage(1);
-    const content = await page.getTextContent();
-    const text = textFromItems(content.items);
+    const items = await readPageTextItems(page, signal);
+    const text = textFromItems(items);
     signal?.throwIfAborted();
-    if (!text.trim()) throw new Error("В PDF не найден текст. Заполните данные вручную.");
+    if (!text.trim()) throw candidatePdfError("В PDF не найден текст. Заполните данные вручную.");
     return candidateFromText(text);
   } catch (error) {
     signal?.throwIfAborted();
-    if (timedOut) throw new Error("Обработка PDF заняла слишком много времени. Заполните данные вручную.");
-    if (error.name === "PasswordException") throw new Error("PDF защищён паролем. Выберите файл без пароля или заполните данные вручную.");
-    if (error.name === "InvalidPDFException") throw new Error("Не удалось прочитать PDF. Проверьте файл или заполните данные вручную.");
-    throw error;
+    if (timedOut) throw candidatePdfError("Обработка PDF заняла слишком много времени. Заполните данные вручную.");
+    if (error.name === "PasswordException") throw candidatePdfError("PDF защищён паролем. Выберите файл без пароля или заполните данные вручную.");
+    if (error.name === "InvalidPDFException") throw candidatePdfError("Не удалось прочитать PDF. Проверьте файл или заполните данные вручную.");
+    if (error.userFacing) throw error;
+    throw candidatePdfError("Не удалось обработать PDF-анкету. Проверьте файл или заполните данные вручную.");
   } finally {
-    clearTimeout(timer);
+    if (timer) clearTimeout(timer);
     signal?.removeEventListener("abort", stop);
-    await task.destroy();
+    if (task) await task.destroy().catch(() => {});
   }
 }

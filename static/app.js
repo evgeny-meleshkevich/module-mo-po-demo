@@ -632,7 +632,7 @@ async function handlePdf(file) {
   elements.parseWarning.hidden = true;
   setLoading(true);
   try {
-    const { parseCandidatePdf } = await import("/static/candidate-pdf.mjs?v=20261016-1");
+    const { parseCandidatePdf } = await import("/static/candidate-pdf.mjs?v=20261020-1");
     const data = await parseCandidatePdf(file, { signal: controller.signal });
     if (!isCurrent()) return;
     state.parsed = true;
@@ -659,7 +659,9 @@ async function handlePdf(file) {
     state.parsed = false;
     elements.fileSubtitle.textContent = "Не удалось обработать файл";
     elements.parseStatus.hidden = true;
-    elements.parseWarning.textContent = error.message;
+    elements.parseWarning.textContent = error?.userFacing
+      ? error.message
+      : "Не удалось обработать PDF-анкету. Проверьте файл или заполните данные вручную.";
     elements.parseWarning.hidden = false;
   } finally {
     if (isCurrent()) {
